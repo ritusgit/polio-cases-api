@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:db="http://www.mulesoft.org/schema/mule/db"
+	xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd">
+	
+	
+	<sub-flow name="insert-polio-case-sub-flow" doc:id="560b8516-1ed2-492d-8e09-c6659e8ebc70" >
+		<logger level="DEBUG" doc:name="Start Log" doc:id="200cee44-5e8d-4ae2-ac42-edee7b9a8f06" message='transactionID: #[vars.transactionId]], correlationID: #[vars.correlationID], message: “Database insert start”, payload: #[payload]' />
+		
+		<db:insert doc:name="Insert Polio Case" doc:id="3f85d5b2-6938-40f0-9fe8-e3198887fc56" config-ref="nhd_database_Config" queryTimeout="60000" queryTimeoutUnit="MILLISECONDS" autoGenerateKeys="true">
+			<reconnect />
+			<db:sql ><![CDATA[insert into polio_case_master(source, case_type, first_name, last_name, phone, email, date_of_birth, national_id, national_id_type, street_address, city, state, postal, country, create_date, update_date, created_by, updated_by) values(:source, :case_type, :first_name, :last_name, :phone, :email, STR_TO_DATE(:date_of_birth, '%Y-%m-%d'), :national_id, :national_id_type, :street_address, :city, :state, :postal, :country, STR_TO_DATE(:create_date, '%Y-%m-%d'), STR_TO_DATE(:update_date, '%Y-%m-%d'), :created_by, :updated_by)]]></db:sql>
+			<db:input-parameters ><![CDATA[#[payload]]]></db:input-parameters>
+		</db:insert>
+		<set-variable value="#[payload.generatedKeys.GENERATED_KEY]" doc:name="Set Case ID" doc:id="11405af3-fbc3-4490-ada3-714772667905" variableName="caseID" />
+		<logger level="DEBUG" doc:name="End Log" doc:id="1aa396e4-0325-4b52-ac72-8d991d59ecde" message="transactionID: #[vars.transactionId]], correlationID: #[vars.correlationID], message: “Database insert complete”, Case ID: #[payload.generatedKeys.GENERATED_KEY]" />
+	</sub-flow>
+	<sub-flow name="update-polio-case-sub-flow" doc:id="5130531b-578a-41db-bf7a-79c7abcda6ab">
+		<logger level="DEBUG" doc:name="Start Log" doc:id="e037f089-7020-4955-a960-a5db3c42e957" message='transactionID: #[vars.transactionId]], correlationID: #[vars.correlationID], message: "Case Database update start", payload: #[payload]' />
+		<db:update doc:name="Update Polio Case Master" doc:id="1434305e-8693-4ef5-a1f1-3755d0c550ff" config-ref="nhd_database_Config">
+			<db:sql><![CDATA[update polio_case_master set source=:source, case_type=:case_type, first_name=:first_name, last_name=:last_name, phone=:phone, email=:email, date_of_birth=STR_TO_DATE(:date_of_birth, '%Y-%m-%d'), national_id=:national_id, national_id_type=:national_id_type, street_address=:street_address, city=:city, state=:state, postal=:postal, country=:country, update_date=STR_TO_DATE(:update_date, '%Y-%m-%d'), created_by=:created_by, updated_by=:updated_by where case_id=:case_id]]></db:sql>
+			<db:input-parameters><![CDATA[#[vars.polioCasePayload]]]></db:input-parameters>
+		</db:update>
+		<logger level="DEBUG" doc:name="End Log" doc:id="277e60c4-fbf7-487b-9755-72408402cf1a" message='transactionID: #[vars.transactionId]], correlationID: #[vars.correlationID], message: "Case Database update complete"' />
+	</sub-flow>
+	<sub-flow name="fetch-case-reports-sub-flow" doc:id="8f4fdf32-d264-471b-9a7c-267906a99804" >
+		<logger level="DEBUG" doc:name="Start Log" doc:id="bac9b626-aff7-4155-8b39-a376064458bb" message='transactionID: #[vars.transactionId]], correlationID: #[vars.correlationID], message: fetch case reports from database started"' />
+		<db:select doc:name="Select Case Reports" doc:id="c100437a-f7ba-4915-91c3-7fad4aa2e923" config-ref="nhd_database_Config">
+			<db:sql><![CDATA[#["$(vars.reportsDynamicQuery)"]]]></db:sql>
+		</db:select>
+		<logger level="DEBUG" doc:name="End Log" doc:id="6a99444a-d437-4c37-961d-4db401e375e3" message='transactionID: #[vars.transactionId]], correlationID: #[vars.correlationID], message: fetch case reports from database completed"' />
+	
+</sub-flow>
+	</mule>

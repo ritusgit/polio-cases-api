@@ -1,0 +1,10 @@
+http:
+  port: "8081"
+
+database:
+  nhd:
+    host: "localhost"
+    port: "3306"
+    user: "localUser"
+    password: "![qHXJWWiUMH+BpCMB3GGHsQ==]"
+    instance: "local"

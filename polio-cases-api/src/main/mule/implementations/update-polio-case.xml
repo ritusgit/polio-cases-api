@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd">
+	
+	<flow name="put:\case:application\json:polio-cases-api-config">
+	<set-variable value="#[attributes.headers.'x-correlation-id' default &quot;&quot;]" doc:name="Set correlationId" doc:id="be125f79-06ed-46b5-af54-f898a7fd185a" variableName="correlationId" />
+       <logger level="INFO" doc:name="Start Log" doc:id="1cc5f73d-38cf-4907-a6eb-25ef937af7ca" message='transactionID: #[vars.transactionId]], correlationID: #[vars.correlationID], message: "update-polio-case flow start", payload: #[payload]' />
+        <ee:transform doc:name="Prepare Polio Case Payload" doc:id="59cdaf1c-f91b-4213-944e-3c1be8fb0f24">
+			<ee:message>
+			</ee:message>
+			<ee:variables>
+				<ee:set-variable variableName="polioCasePayload"><![CDATA[%dw 2.0
+output application/java
+---
+{
+	case_id: payload.caseID,
+	source: payload.source,
+	case_type: payload.caseType,
+	first_name: payload.firstName,
+	last_name: payload.lastName,
+	phone: payload.phone,
+	email: payload.email,
+	date_of_birth: payload.dateOfBirth as String {
+		format: "yyyy-MM-dd"
+	},
+	national_id: payload.nationalID,
+	national_id_type: payload.nationalIDType,
+	street_address: payload.address.streetAddress,
+	city: payload.address.city,
+	state: upper(payload.address.state),
+	postal: payload.address.postal,
+	country: payload.address.country,
+	update_date: now() as String {
+		format: "yyyy-MM-dd"
+	},
+	created_by: "NHD",
+	updated_by: "NHD"
+}
+]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+		<flow-ref doc:name="update-polio-case-sub-flow" doc:id="2916ad27-48ca-494f-bb22-2ac28958b84d" name="update-polio-case-sub-flow" />
+        	<ee:transform doc:name="Set Success Response" doc:id="0da0ae8d-7913-4ddf-9688-1e337b1db217" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+if (payload.affectedRows > 0 ) {
+	caseID: vars.polioCasePayload.case_id
+} else {}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<logger level="INFO" doc:name="End Log" doc:id="811c3250-5bac-4bae-9ccb-58941302c217" message='transactionID: #[vars.transactionId]], correlationID: #[vars.correlationID], message: "update-polio-case flow complete", payload: #[payload]' />
+    </flow>
+    
+	</mule>
